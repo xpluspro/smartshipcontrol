@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title>DiyAbc智能小车控制</title>
+    <style type="text/css">
+
+        .controller {
+            float: left;
+            width: 49%;
+        }
+
+            .controller p {
+                text-align:center;
+                font-size: 18px;
+            }
+
+        .controller table tr td{
+            padding: 10px;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <h3>DiyAbc智能小车控制</h3>
+    <div id="login">
+        <div style="margin: 10px;">
+            <input id="serverIP" type="text" placeholder="服务器IP" value="192.168.137.37" autofocus="autofocus" />
+            <input id="serverPort" type="text" placeholder="服务器端口" value="9900" />
+            <input id="btnConnect" type="button" value="连接" onclick="connect()" />
+        </div>
+        <div style="margin: 10px;">
+            <input id="sendText" type="text" placeholder="发送文本" value="up" />
+            <input id="btnSend" type="button" value="发送" onclick="send()" />
+        </div>
+
+        <div style="margin: 10px;">
+            <img id="imgCamera" src="" style="width: 100%" />
+        </div>
+
+
+        <div>
+
+            <div class="controller" id="car" >
+                <p>车控制</p>
+                <table >
+                    <tr>
+                        <td colspan="3">
+                            <button onclick="sendCmd('up')">前进</button>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td> <button onclick="sendCmd('left')">左转</button></td>
+                        <td> <button onclick="sendCmd('stop')">停止</button></td>
+                        <td> <button onclick="sendCmd('right')">右转</button></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            <button onclick="sendCmd('back')">后退</button>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <div class="controller" id="camera" >
+                <p>摄像头</p>
+                <table >
+                    <tr>
+                        <td colspan="3">
+                            <button onclick="sendCmd('cam_up')">上转</button>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td> <button onclick="sendCmd('cam_left')">左转</button></td>
+                        <td> <button onclick="sendCmd('cam_init')">归位</button></td>
+                        <td> <button onclick="sendCmd('cam_right')">右转</button></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            <button onclick="sendCmd('cam_down')">下转</button>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+        </div>
+
+    </div>
+    <script type="text/javascript" src="./js/jquery.min.js"></script>
+    <script type="text/javascript" src="./js/layer/layer.js"></script>
+
+    <script type="text/javascript">
+        var socket;
+        var isConnect=false;
+        //http://192.168.137.37:8080/?action=stream
+        function cameraConntct() {
+            var host= "http://" + $("serverIP").value + ":8080/?action=stream"
+           document.getElementById("imgCamera").setAttribute("src",host);
+        }
+        
+        function connect() {
+
+            var host = "ws://" + $("serverIP").value + ":" + $("serverPort").value + "/"
+            socket = new WebSocket(host);
+            try {
+
+                socket.onopen = function (msg) {
+                    $("btnConnect").disabled = true;
+                    isConnect=true;
+                    cameraConntct();
+                    layer.msg("连接成功！");
+                };
+
+                socket.onmessage = function (msg) {
+                    if (typeof msg.data == "string") {
+                        displayContent(msg.data);
+                    }
+                    else {
+                        layer.msg("非文本消息");
+                    }
+                };
+
+                socket.onclose = function (msg) {
+                    $("btnConnect").disabled = false;
+                    isConnect=false;
+                    layer.msg("连接已断开!")
+                };
+            }
+            catch (ex) {
+                log(ex);
+            }
+        }
+
+        function send() {
+
+            if(!isConnect){
+                layer.msg("请先连接智能小车");
+                return false;
+            }
+
+            var msg = $("sendText").value
+            socket.send(msg);
+        }
+
+        function sendCmd(cmd){
+            if(!isConnect){
+                layer.msg("请先连接智能小车");
+                return false;
+            }
+            socket.send(cmd);
+        }
+
+        window.onbeforeunload = function () {
+            try {
+                socket.close();
+                socket = null;
+            }
+            catch (ex) {
+            }
+        };
+
+        function $(id) { return document.getElementById(id); }
+        function onkey(event) { if (event.keyCode == 13) { send(); } }
+    </script>
+</body>
+</html>
